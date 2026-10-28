@@ -14,6 +14,8 @@ final class Prompts {
             in a Spring Boot application: configuration properties, JVM flags or code patterns.
             Only rely on the evidence given. When the evidence does not settle a point, say what to
             collect to settle it. Do not invent numbers.
+            When source code is given, the line marked with > is the one the evidence points at:
+            name the cause in that code and show the change to make, as a short diff or snippet.
             Answer in plain Markdown, under 300 words, with the sections: Cause, Confirm, Fix.
             """;
 
@@ -33,6 +35,11 @@ final class Prompts {
         if (!context.otherFindings().isEmpty()) {
             sb.append("\n## Other findings in the same diagnosis\n");
             context.otherFindings().forEach(e -> sb.append("- ").append(e).append('\n'));
+        }
+        if (!context.sources().isEmpty()) {
+            sb.append("\n## Source code\n");
+            context.sources().forEach(s -> sb.append("\n").append(s.location()).append("\n```java\n")
+                    .append(s.code()).append("```\n"));
         }
         Runbooks.forFinding(finding.id())
                 .ifPresent(runbook -> sb.append("\n## Runbook\n").append(runbook).append('\n'));

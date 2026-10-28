@@ -1,0 +1,42 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.2)
+
+2026-10-28T17:57:54.839Z  INFO 7488 --- [leaky-orders] [           main] c.example.orders.LeakyOrdersApplication  : Starting LeakyOrdersApplication v0.0.1 using Java 21.0.12.1 with PID 7488 (/app/build/libs/leaky-orders-0.0.1.jar started by root in /app)
+2026-10-28T17:57:54.844Z  INFO 7488 --- [leaky-orders] [           main] c.example.orders.LeakyOrdersApplication  : The following 1 profile is active: "cycle"
+2026-10-28T17:57:55.862Z  INFO 7488 --- [leaky-orders] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 0 (http)
+2026-10-28T17:57:55.877Z  INFO 7488 --- [leaky-orders] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-28T17:57:55.877Z  INFO 7488 --- [leaky-orders] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.27]
+2026-10-28T17:57:55.924Z  INFO 7488 --- [leaky-orders] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 999 ms
+2026-10-28T17:57:56.209Z  WARN 7488 --- [leaky-orders] [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'dependencyCycle.ShippingService' defined in URL [jar:nested:/app/build/libs/leaky-orders-0.0.1.jar/!BOOT-INF/classes/!/com/example/orders/failures/DependencyCycle$ShippingService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'dependencyCycle.StockService' defined in URL [jar:nested:/app/build/libs/leaky-orders-0.0.1.jar/!BOOT-INF/classes/!/com/example/orders/failures/DependencyCycle$StockService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'dependencyCycle.ShippingService': Requested bean is currently in creation: Is there an unresolvable circular reference or an asynchronous initialization dependency?
+2026-10-28T17:57:56.212Z  INFO 7488 --- [leaky-orders] [           main] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-10-28T17:57:56.225Z  INFO 7488 --- [leaky-orders] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-10-28T17:57:56.241Z ERROR 7488 --- [leaky-orders] [           main] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+The dependencies of some of the beans in the application context form a cycle:
+
+┌─────┐
+|  dependencyCycle.ShippingService defined in URL [jar:nested:/app/build/libs/leaky-orders-0.0.1.jar/!BOOT-INF/classes/!/com/example/orders/failures/DependencyCycle$ShippingService.class]
+↑     ↓
+|  dependencyCycle.StockService defined in URL [jar:nested:/app/build/libs/leaky-orders-0.0.1.jar/!BOOT-INF/classes/!/com/example/orders/failures/DependencyCycle$StockService.class]
+└─────┘
+
+
+Action:
+
+Relying upon circular references is discouraged and they are prohibited by default. Update your application to remove the dependency cycle between beans. As a last resort, it may be possible to break the cycle automatically by setting spring.main.allow-circular-references to true.
+

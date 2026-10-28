@@ -23,7 +23,7 @@ import picocli.CommandLine.Spec;
 
 @Command(name = "analyze", description = {
     "Diagnoses a JVM and prints the findings.",
-    "TARGET is a live JVM (pid:<pid>), a bundle directory, or a .jfr file."
+    "TARGET is a live JVM (pid:<pid>), a bundle directory, a .jfr file, or an application log."
 })
 final class AnalyzeCommand implements Callable<Integer> {
 
@@ -37,6 +37,9 @@ final class AnalyzeCommand implements Callable<Integer> {
 
     @Option(names = {"-o", "--out"}, description = "Where to keep the bundle collected from a live JVM.")
     Path out;
+
+    @Option(names = "--log", paramLabel = "FILE", description = "Application log to analyze with the JVM data: startup failures and exceptions.")
+    Path log;
 
     @Option(names = {"-f", "--format"}, defaultValue = "text", description = "Output format: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).")
     Format format;
@@ -59,12 +62,12 @@ final class AnalyzeCommand implements Callable<Integer> {
     @Override
     public Integer call() throws IOException {
         PrintWriter err = spec.commandLine().getErr();
-        Targets.Loaded loaded = Targets.load(Target.parse(target), collection.toOptions(), out, err);
+        Targets.Loaded loaded = Targets.load(Target.parse(target), collection.toOptions(), out, log, err);
         List<Finding> findings = Analyzer.withDefaultRules().analyze(loaded.diagnosis());
 
         List<String> jvm = JvmFacts.of(loaded.diagnosis());
         Map<String, String> explanations = explain && !findings.isEmpty()
-                ? llm.explainer().map(e -> Explanations.forFindings(e, findings, jvm, err)).orElse(Map.of())
+                ? llm.explainer().map(e -> Explanations.forFindings(e, llm, findings, jvm, err)).orElse(Map.of())
                 : Map.of();
         Report report = Report.create(Report.KIND_JVM, loaded.description(), jvm, findings, explanations);
 
