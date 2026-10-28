@@ -1,0 +1,93 @@
+12345:
+2026-10-28 17:40:02
+Full thread dump OpenJDK 64-Bit Server VM (21.0.5+11-LTS mixed mode, sharing):
+
+Threads class SMR info:
+_java_thread_list=0x00007f, length=40, elements={
+0x00007f0001
+}
+
+"http-nio-8080-exec-1" #41 [101] daemon prio=5 os_prio=0 cpu=12.30ms elapsed=120.01s tid=0x00007f nid=101 waiting on condition  [0x00007f]
+   java.lang.Thread.State: TIMED_WAITING (parking)
+	at jdk.internal.misc.Unsafe.park(java.base@21.0.5/Native Method)
+	- parking to wait for  <0x00000000f1> (a java.util.concurrent.SynchronousQueue$TransferStack)
+	at java.util.concurrent.locks.LockSupport.parkNanos(java.base@21.0.5/LockSupport.java:269)
+	at java.util.concurrent.SynchronousQueue$TransferStack.transfer(java.base@21.0.5/SynchronousQueue.java:401)
+	at java.util.concurrent.SynchronousQueue.poll(java.base@21.0.5/SynchronousQueue.java:903)
+	at com.zaxxer.hikari.util.ConcurrentBag.borrow(ConcurrentBag.java:151)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:180)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:146)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:128)
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:388)
+	at com.example.orders.ReportService.monthlyReport(ReportService.java:42)
+	at com.example.orders.ReportController.report(ReportController.java:21)
+	at java.lang.Thread.run(java.base@21.0.5/Thread.java:1583)
+
+   Locked ownable synchronizers:
+	- None
+
+"http-nio-8080-exec-2" #42 [102] daemon prio=5 os_prio=0 cpu=10.01ms elapsed=120.01s tid=0x00007f nid=102 waiting on condition  [0x00007f]
+   java.lang.Thread.State: TIMED_WAITING (parking)
+	at jdk.internal.misc.Unsafe.park(java.base@21.0.5/Native Method)
+	at java.util.concurrent.SynchronousQueue.poll(java.base@21.0.5/SynchronousQueue.java:903)
+	at com.zaxxer.hikari.util.ConcurrentBag.borrow(ConcurrentBag.java:151)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:180)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:128)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:388)
+	at com.example.orders.ReportService.monthlyReport(ReportService.java:42)
+	at java.lang.Thread.run(java.base@21.0.5/Thread.java:1583)
+
+"http-nio-8080-exec-3" #43 [103] daemon prio=5 os_prio=0 cpu=9.70ms elapsed=120.01s tid=0x00007f nid=103 waiting on condition  [0x00007f]
+   java.lang.Thread.State: TIMED_WAITING (parking)
+	at jdk.internal.misc.Unsafe.park(java.base@21.0.5/Native Method)
+	at com.zaxxer.hikari.util.ConcurrentBag.borrow(ConcurrentBag.java:151)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:180)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:388)
+	at com.example.orders.OrderRepository.save(OrderRepository.java:30)
+	at java.lang.Thread.run(java.base@21.0.5/Thread.java:1583)
+
+"locker-a" #50 [110] prio=5 os_prio=0 cpu=1.00ms elapsed=60.00s tid=0x00007f nid=110 waiting for monitor entry  [0x00007f]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+	at com.example.orders.Inventory.transfer(Inventory.java:18)
+	- waiting to lock <0x00000000a2> (a java.lang.Object)
+	- locked <0x00000000a1> (a java.lang.Object)
+	at java.lang.Thread.run(java.base@21.0.5/Thread.java:1583)
+
+"locker-b" #51 [111] prio=5 os_prio=0 cpu=1.00ms elapsed=60.00s tid=0x00007f nid=111 waiting for monitor entry  [0x00007f]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+	at com.example.orders.Inventory.transfer(Inventory.java:18)
+	- waiting to lock <0x00000000a1> (a java.lang.Object)
+	- locked <0x00000000a2> (a java.lang.Object)
+	at java.lang.Thread.run(java.base@21.0.5/Thread.java:1583)
+
+"VM Thread" os_prio=0 cpu=50.00ms elapsed=120.10s tid=0x00007f nid=20 runnable
+
+"GC Thread#0" os_prio=0 cpu=20.00ms elapsed=120.10s tid=0x00007f nid=21 runnable
+
+JNI global refs: 15, weak refs: 0
+
+
+Found one Java-level deadlock:
+=============================
+"locker-a":
+  waiting to lock monitor 0x00007f00a2 (object 0x00000000a2, a java.lang.Object),
+  which is held by "locker-b"
+
+"locker-b":
+  waiting to lock monitor 0x00007f00a1 (object 0x00000000a1, a java.lang.Object),
+  which is held by "locker-a"
+
+Java stack information for the threads listed above:
+===================================================
+"locker-a":
+	at com.example.orders.Inventory.transfer(Inventory.java:18)
+	- waiting to lock <0x00000000a2> (a java.lang.Object)
+	- locked <0x00000000a1> (a java.lang.Object)
+"locker-b":
+	at com.example.orders.Inventory.transfer(Inventory.java:18)
+	- waiting to lock <0x00000000a1> (a java.lang.Object)
+	- locked <0x00000000a2> (a java.lang.Object)
+
+Found 1 deadlock.
+
