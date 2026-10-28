@@ -23,6 +23,9 @@ final class CollectCommand implements Callable<Integer> {
     @Option(names = {"-o", "--out"}, description = "Bundle directory (default: ./jdoctor-bundle-<pid>-<time>).")
     Path out;
 
+    @Option(names = "--log", paramLabel = "FILE", description = "Application log to copy into the bundle.")
+    Path log;
+
     @Mixin
     CollectionOptions collection;
 
@@ -31,7 +34,7 @@ final class CollectCommand implements Callable<Integer> {
         if (!(Target.parse(target) instanceof Target.LocalPid pid)) {
             throw new IllegalArgumentException("collect needs a live JVM: pid:<pid>");
         }
-        Bundle bundle = Targets.collect(pid, collection.toOptions(), out, spec.commandLine().getErr());
+        Bundle bundle = Targets.collect(pid, collection.toOptions(), out, log, spec.commandLine().getErr());
         spec.commandLine().getOut().println(bundle.dir());
         return 0;
     }

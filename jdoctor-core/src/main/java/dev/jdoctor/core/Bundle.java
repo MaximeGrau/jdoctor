@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -24,6 +26,7 @@ public final class Bundle {
     public static final String VM_INFO = "vm-info.txt";
     public static final String HEAP_HISTOGRAM = "heap-histogram.txt";
     public static final String THREAD_DUMP_PREFIX = "thread-dump-";
+    public static final String APP_LOG = "app.log";
 
     private static final ObjectMapper JSON = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -63,6 +66,21 @@ public final class Bundle {
             throw new UncheckedIOException("Cannot write manifest in " + dir, e);
         }
         return new Bundle(dir, manifest);
+    }
+
+    /** Copies a file into the bundle under {@code name} and records it in the manifest. */
+    public Bundle attach(Path source, String name) {
+        try {
+            Files.copy(source, dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot copy " + source + " into " + dir, e);
+        }
+        List<String> files = new ArrayList<>(manifest.files());
+        if (!files.contains(name)) {
+            files.add(name);
+        }
+        return seal(dir, new Manifest(manifest.formatVersion(), manifest.target(), manifest.jdoctorVersion(),
+                manifest.collectedAt(), manifest.durationSeconds(), files, manifest.warnings()));
     }
 
     public Path dir() {

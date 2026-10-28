@@ -3,6 +3,7 @@ package dev.jdoctor.analyze;
 import dev.jdoctor.analyze.parse.ContainerInfo;
 import dev.jdoctor.analyze.parse.HeapHistogram;
 import dev.jdoctor.analyze.parse.JfrSummary;
+import dev.jdoctor.analyze.parse.LogParser;
 import dev.jdoctor.analyze.parse.ThreadDump;
 import dev.jdoctor.analyze.parse.VmFlags;
 import java.io.IOException;
@@ -29,15 +30,21 @@ public final class Fixtures {
     }
 
     public static Diagnosis withJfr(JfrSummary jfr) {
-        return new Diagnosis(Optional.of(jfr), List.of(), Optional.empty(), Optional.empty(), List.of());
+        return new Diagnosis(Optional.of(jfr), List.of(), Optional.empty(), Optional.empty(), List.of(),
+                Optional.empty());
+    }
+
+    public static Diagnosis withLog(String resource) {
+        return Diagnosis.empty().withLog(LogParser.parse(resource(resource)));
     }
 
     public static Diagnosis withThreadDumps(List<ThreadDump> dumps) {
-        return new Diagnosis(Optional.empty(), dumps, Optional.empty(), Optional.empty(), List.of());
+        return new Diagnosis(Optional.empty(), dumps, Optional.empty(), Optional.empty(), List.of(),
+                Optional.empty());
     }
 
     public static Diagnosis withSizing(String flags, ContainerInfo container) {
         return new Diagnosis(Optional.empty(), List.of(), Optional.of(new VmFlags(flags)), Optional.of(container),
-                List.<HeapHistogram.Entry>of());
+                List.<HeapHistogram.Entry>of(), Optional.empty());
     }
 }

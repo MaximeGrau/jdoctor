@@ -1,6 +1,7 @@
 package dev.jdoctor.analyze.rules;
 
 import dev.jdoctor.analyze.Diagnosis;
+import dev.jdoctor.analyze.Frames;
 import dev.jdoctor.analyze.Rule;
 import dev.jdoctor.analyze.parse.ThreadDump;
 import dev.jdoctor.core.Finding;
@@ -24,9 +25,6 @@ public final class HikariPoolExhaustionRule implements Rule {
     static final String GET_CONNECTION = "com.zaxxer.hikari.pool.HikariPool.getConnection";
     static final int MIN_WAITERS = 3;
     static final int CRITICAL_WAITERS = 20;
-    private static final List<String> FRAMEWORK_PREFIXES = List.of(
-            "com.zaxxer.", "org.springframework.", "org.hibernate.", "org.apache.", "jakarta.", "javax.",
-            "java.", "jdk.", "sun.", "com.sun.", "org.jooq.", "io.micrometer.");
 
     @Override
     public List<Finding> evaluate(Diagnosis diagnosis) {
@@ -73,10 +71,8 @@ public final class HikariPoolExhaustionRule implements Rule {
     /** First frame that belongs to the application rather than a framework or the JDK. */
     static Optional<String> applicationCaller(ThreadDump.ThreadInfo thread) {
         return thread.frames().stream()
-                .filter(f -> FRAMEWORK_PREFIXES.stream().noneMatch(f::startsWith))
-                .map(f -> f.replaceAll("\\(.*\\)$", ""))
-                // Spring proxies (@Transactional) show up as Service$$SpringCGLIB$$0.method.
-                .map(f -> f.replaceAll("\\$\\$SpringCGLIB\\$\\$\\d+", ""))
+                .filter(Frames::isApplication)
+                .map(Frames::method)
                 .findFirst();
     }
 }

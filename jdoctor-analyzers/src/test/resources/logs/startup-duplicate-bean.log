@@ -1,0 +1,30 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.2)
+
+2026-10-28T17:57:48.284Z  INFO 7394 --- [leaky-orders] [           main] c.example.orders.LeakyOrdersApplication  : Starting LeakyOrdersApplication v0.0.1 using Java 21.0.12.1 with PID 7394 (/app/build/libs/leaky-orders-0.0.1.jar started by root in /app)
+2026-10-28T17:57:48.290Z  INFO 7394 --- [leaky-orders] [           main] c.example.orders.LeakyOrdersApplication  : The following 1 profile is active: "duplicate-bean"
+2026-10-28T17:57:48.930Z  WARN 7394 --- [leaky-orders] [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.support.BeanDefinitionOverrideException: Invalid bean definition with name 'priceRounding' defined in class path resource [com/example/orders/failures/DuplicateBeanConfigs$CheckoutConfig.class]: Cannot register bean definition [Root bean: class=null; scope=; abstract=false; lazyInit=null; autowireMode=3; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=duplicateBeanConfigs.CheckoutConfig; factoryMethodName=priceRounding; initMethodNames=null; destroyMethodNames=[(inferred)]; defined in class path resource [com/example/orders/failures/DuplicateBeanConfigs$CheckoutConfig.class]] for bean 'priceRounding' since there is already [Root bean: class=null; scope=; abstract=false; lazyInit=null; autowireMode=3; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=duplicateBeanConfigs.CatalogConfig; factoryMethodName=priceRounding; initMethodNames=null; destroyMethodNames=[(inferred)]; defined in class path resource [com/example/orders/failures/DuplicateBeanConfigs$CatalogConfig.class]] bound.
+2026-10-28T17:57:48.938Z  INFO 7394 --- [leaky-orders] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-10-28T17:57:48.972Z ERROR 7394 --- [leaky-orders] [           main] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+The bean 'priceRounding', defined in class path resource [com/example/orders/failures/DuplicateBeanConfigs$CheckoutConfig.class], could not be registered. A bean with that name has already been defined in class path resource [com/example/orders/failures/DuplicateBeanConfigs$CatalogConfig.class] and overriding is disabled.
+
+Action:
+
+Consider renaming one of the beans or enabling overriding by setting spring.main.allow-bean-definition-overriding=true
+

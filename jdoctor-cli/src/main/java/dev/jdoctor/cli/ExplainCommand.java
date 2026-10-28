@@ -27,7 +27,7 @@ final class ExplainCommand implements Callable<Integer> {
     @Parameters(index = "0", paramLabel = "ID", description = "Finding id, e.g. JD-MEM-001.")
     String id;
 
-    @Parameters(index = "1", paramLabel = "BUNDLE", description = "Bundle directory or .jfr file the finding comes from.")
+    @Parameters(index = "1", paramLabel = "BUNDLE", description = "Bundle directory, .jfr file or application log the finding comes from.")
     String target;
 
     @Mixin
@@ -39,7 +39,7 @@ final class ExplainCommand implements Callable<Integer> {
         if (parsed instanceof Target.LocalPid) {
             throw new IllegalArgumentException("explain works on a bundle; run jdoctor analyze or collect first.");
         }
-        Targets.Loaded loaded = Targets.load(parsed, null, null, spec.commandLine().getErr());
+        Targets.Loaded loaded = Targets.load(parsed, null, null, null, spec.commandLine().getErr());
         List<Finding> findings = Analyzer.withDefaultRules().analyze(loaded.diagnosis());
         Finding finding = findings.stream()
                 .filter(f -> f.id().equalsIgnoreCase(id))
@@ -51,7 +51,8 @@ final class ExplainCommand implements Callable<Integer> {
         String text;
         if (explainer.isPresent()) {
             List<String> others = findings.stream().filter(f -> f != finding).map(f -> f.id() + ": " + f.title()).toList();
-            text = explainer.get().explain(finding, new ExplainContext(JvmFacts.of(loaded.diagnosis()), others));
+            text = explainer.get().explain(finding, new ExplainContext(JvmFacts.of(loaded.diagnosis()), others,
+                    llm.snippets(finding)));
         } else {
             text = Runbooks.forFinding(finding.id()).orElse("No runbook for " + finding.id() + ".");
         }
