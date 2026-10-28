@@ -1,3 +1,109 @@
 # jdoctor
 
-Diagnose a production JVM in one command.
+**Diagnose a production JVM in one command.** jdoctor collects a JFR recording, thread dumps and
+JVM flags with `jcmd` (no agent to install), runs deterministic rules that prove each problem with
+numbers, then can ask an LLM to explain the cause and the fix. It knows Spring Boot: HikariCP,
+Tomcat threads, `@Transactional`, container sizing.
+
+> Status: early prototype (0.1.0-SNAPSHOT). Local JVMs only; Docker and Kubernetes targets come next.
+
+```
+$ jdoctor analyze pid:4896 --duration 40s
+jdoctor 0.1.0-SNAPSHOT · pid:4896
+  GC: G1
+  Max heap: 256 MiB
+  JFR recording: 41 s, 32 GCs
+  Thread dumps: 3 (41 threads in the first)
+
+CRITICAL  JD-MEM-001  Heap after GC grows steadily (+173 MiB/min): probable memory leak
+                     Heap floor after GC rose from 39 MiB to 138 MiB over 41 s (32 collections)
+                     Growth: 173 MiB/min, linear fit r² = 1.00
+                     Max heap 256 MiB: full in about 1 min at this rate
+                     Top retained class: [B (68968 instances, 110 MiB)
+
+WARNING   JD-SPR-001  HikariCP pool saturated: up to 6 threads waiting for a connection
+                     Threads waiting for a connection, per dump: 6, 6, 6
+                     Waiting from com.example.orders.ReportService.monthlyReport (18 times)
+```
+
+This output comes from [`samples/leaky-orders`](samples/leaky-orders), a Spring Boot app with two bugs on purpose.
+
+## Principles
+
+- **Rules detect, the LLM explains.** Every finding comes from a deterministic rule with its evidence.
+  The LLM never detects anything, and jdoctor is fully useful without one (`--llm none`).
+- **Local first.** Nothing leaves your machine unless you ask for an explanation. Even then, the LLM
+  only receives the finding's summary, after redaction of emails, IPs, tokens and JDBC URLs.
+- **Bring your own key.** Explanations use your `ANTHROPIC_API_KEY`.
+
+## Install and run
+
+Requires a JDK 21 to run jdoctor, and a JDK 17+ (with `jcmd`) on the machine of the target JVM.
+
+```bash
+./gradlew :jdoctor-cli:installDist
+export PATH="$PWD/jdoctor-cli/build/install/jdoctor/bin:$PATH"
+
+jdoctor ps                                   # list local JVMs
+jdoctor analyze pid:4242                     # collect for 60 s, then print findings
+jdoctor analyze pid:4242 --explain           # also ask Claude for cause and fix
+jdoctor collect pid:4242 -o incident/        # collect in production...
+jdoctor analyze incident/ --format md        # ...analyze later, anywhere
+jdoctor explain JD-MEM-001 incident/         # explain one finding (--llm none prints the runbook)
+jdoctor analyze recording.jfr                # analyze an existing JFR file
+```
+
+Useful options: `--duration 30s`, `--thread-dumps 5`, `--no-histogram` (the histogram triggers a full GC),
+`--format text|md|json`, `--report file`, `--fail-on warning|critical` (exit code 2, for load tests in CI),
+`--model` or `JDOCTOR_MODEL` to choose the Claude model.
+
+## Rules
+
+| Id | Detects | Data used |
+| --- | --- | --- |
+| [JD-MEM-001](runbooks/JD-MEM-001.md) | Heap floor after GC rising steadily: memory leak | JFR heap summaries, histogram |
+| [JD-GC-001](runbooks/JD-GC-001.md) | GC pauses above 5 % of the time, or a pause above 500 ms | JFR GC events |
+| [JD-THR-001](runbooks/JD-THR-001.md) | Deadlocked threads | Thread dumps |
+| [JD-SPR-001](runbooks/JD-SPR-001.md) | HikariCP pool saturated in several dumps, with the calling code | Thread dumps |
+| [JD-SIZE-001](runbooks/JD-SIZE-001.md) | Max heap above 80 % of the container memory limit | VM flags, VM.info cgroup section |
+
+## How it works
+
+```
+target JVM ──jcmd──▶ bundle (manifest.json, recording.jfr, thread dumps, flags, VM.info, histogram)
+                         │
+                         ▼
+                  rules ──▶ findings (id, severity, title, evidence, recommendation)
+                         │
+              ┌──────────┼───────────────┐
+              ▼          ▼               ▼
+         terminal /   LLM explanation   JSON report
+         Markdown     (redacted input)  (docs/report.schema.json)
+```
+
+| Module | Role |
+| --- | --- |
+| `jdoctor-core` | Finding, Bundle, versioned Report, runbooks, extension SPIs |
+| `jdoctor-collectors` | Collection from a local JVM with `jcmd` |
+| `jdoctor-analyzers` | Parsers (JFR, thread dumps, flags, cgroup, histogram) and rules |
+| `jdoctor-llm` | Redaction, prompts, Claude explainer |
+| `jdoctor-cli` | picocli commands and renderers |
+
+### Extending jdoctor
+
+Modules plug in without touching the core, through `java.util.ServiceLoader`:
+
+- `dev.jdoctor.core.spi.CommandProvider` adds a command family (for example `jdoctor ai`).
+- `dev.jdoctor.core.spi.McpToolProvider` registers tools for the MCP server (coming in v0.1).
+- Every module produces the same `Report` JSON (`schemaVersion`, `kind`, `findings`...), described in
+  [docs/report.schema.json](docs/report.schema.json). Finding ids use a prefix per family (`JD-MEM`, `JD-SPR`, `JD-AI`...).
+
+## Roadmap
+
+- v0.1: Docker and Kubernetes targets, MCP server, 15 rules, Homebrew and JBang packages.
+- v0.2: Actuator and Spring metrics, `jdoctor size` for right-sizing, offline GC logs, Ollama.
+- v0.3: heap dump analysis with Eclipse MAT, HTML report.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).

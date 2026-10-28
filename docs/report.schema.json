@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MaximeGrau/jdoctor/docs/report.schema.json",
+  "title": "jdoctor report",
+  "description": "Result produced by every jdoctor module (JVM diagnosis, Spring AI usage, evals). Version 1.",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "producer", "createdAt", "subject", "facts", "findings", "explanations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": {
+      "type": "string",
+      "description": "What was diagnosed. Known kinds: jvm-diagnosis. Reserved: ai-usage, ai-evals.",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "producer": { "type": "string", "description": "Tool and version, e.g. \"jdoctor 0.1.0\"." },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "subject": { "type": "string", "description": "What the report is about, e.g. pid:4242 or a bundle path." },
+    "facts": { "type": "array", "items": { "type": "string" } },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "title", "evidence", "recommendation"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^JD-[A-Z]+-[0-9]{3}$", "description": "Stable id; each has a runbook." },
+          "severity": { "enum": ["INFO", "WARNING", "CRITICAL"] },
+          "title": { "type": "string" },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "recommendation": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "explanations": {
+      "type": "object",
+      "description": "LLM explanations in Markdown, keyed by finding id.",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

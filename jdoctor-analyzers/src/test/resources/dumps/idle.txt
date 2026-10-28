@@ -1,0 +1,10 @@
+12345:
+Full thread dump OpenJDK 64-Bit Server VM (21.0.5+11-LTS mixed mode, sharing):
+
+"main" #1 [100] prio=5 os_prio=0 cpu=100.00ms elapsed=10.00s tid=0x00007f nid=100 waiting on condition  [0x00007f]
+   java.lang.Thread.State: TIMED_WAITING (sleeping)
+	at java.lang.Thread.sleep0(java.base@21.0.5/Native Method)
+	at java.lang.Thread.sleep(java.base@21.0.5/Thread.java:509)
+	at com.example.Main.main(Main.java:5)
+
+"VM Thread" os_prio=0 cpu=5.00ms elapsed=10.00s tid=0x00007f nid=20 runnable
