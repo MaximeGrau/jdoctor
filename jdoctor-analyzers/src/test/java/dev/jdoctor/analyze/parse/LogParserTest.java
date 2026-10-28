@@ -72,6 +72,22 @@ class LogParserTest {
     }
 
     @Test
+    void nestedExceptionTypesAreRecognized() {
+        LogSummary log = LogParser.parse("""
+                2026-01-01T10:00:00.000Z ERROR 1 --- [exec-1] o.a.c.c.C : Servlet.service() threw exception
+                org.springframework.web.client.HttpClientErrorException$TooManyRequests: 429 Too Many Requests: "{}"
+                \tat org.springframework.web.client.HttpClientErrorException.create(HttpClientErrorException.java:137)
+                \tat com.example.Pricing.fetch(Pricing.java:22)
+                """);
+
+        assertThat(log.exceptions()).singleElement().satisfies(e -> {
+            assertThat(e.rootCause().type())
+                    .isEqualTo("org.springframework.web.client.HttpClientErrorException$TooManyRequests");
+            assertThat(e.rootCause().message()).startsWith("429 Too Many Requests");
+        });
+    }
+
+    @Test
     void exceptionNamesInPlainLogLinesAreIgnored() {
         LogSummary log = LogParser.parse("""
                 2026-01-01T10:00:00.000Z  WARN 1 --- [main] c.e.Foo : Resolved [java.lang.IllegalArgumentException: x]

@@ -18,9 +18,11 @@ import java.util.regex.Pattern;
  */
 public final class LogParser {
 
+    /** Also matches nested types such as {@code HttpClientErrorException$TooManyRequests}. */
     private static final Pattern EXCEPTION = Pattern.compile(
             "^(?:Caused by: |Exception in thread \"[^\"]*\" )?"
-                    + "((?:[a-zA-Z_$][\\w$]*\\.)+[A-Z][\\w$]*(?:Exception|Error|Throwable))(?::\\s?(.*))?$");
+                    + "((?:[a-zA-Z_$][\\w$]*\\.)+[A-Z][\\w$]*(?:Exception|Error|Throwable)(?:\\$[A-Z]\\w*)*)"
+                    + "(?::\\s?(.*))?$");
     private static final Pattern FRAME = Pattern.compile("^\\tat (?:[\\w.]+/)?(\\S+\\([^)]*\\))");
     private static final Pattern NESTED = Pattern.compile("^\\t(?:\\t|Suppressed: )");
     /** A new log record starts with a date, as in Spring Boot's default patterns. */
