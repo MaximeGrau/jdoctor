@@ -3,7 +3,10 @@
 **Diagnose a production JVM in one command.** jdoctor collects a JFR recording, thread dumps and
 JVM flags with `jcmd` (no agent to install), runs deterministic rules that prove each problem with
 numbers, then can ask an LLM to explain the cause and the fix. It knows Spring Boot: HikariCP,
-Tomcat threads, `@Transactional`, container sizing.
+Tomcat threads, `@Transactional`, container sizing. It also reads application logs: startup failures
+(duplicate or missing beans, cycles) and recurring exceptions such as `NullPointerException`.
+
+With `--source`, the explanation sees the code around the failing line and proposes the fix.
 
 > Status: early prototype (0.1.0-SNAPSHOT). Local JVMs only; Docker and Kubernetes targets come next.
 
@@ -26,7 +29,18 @@ WARNING   JD-SPR-001  HikariCP pool saturated: up to 6 threads waiting for a con
                      Waiting from com.example.orders.ReportService.monthlyReport (18 times)
 ```
 
-This output comes from [`samples/leaky-orders`](samples/leaky-orders), a Spring Boot app with two bugs on purpose.
+The same on a log, from a run where some requests hit two bugs:
+
+```
+$ jdoctor analyze app.log
+WARNING   JD-EXC-001  NullPointerException in OrderController.size (5 times)
+                     5 times NullPointerException at com.example.orders.OrderController.size(OrderController.java:41): Cannot read the array length because "order" is null
+
+WARNING   JD-EXC-002  Application exception OrderNotFoundException escapes unhandled (3 times)
+                     3 times OrderNotFoundException at com.example.orders.OrderController.get(OrderController.java:32): Order 6cbe4cf7-... not found
+```
+
+These outputs come from [`samples/leaky-orders`](samples/leaky-orders), a Spring Boot app with bugs on purpose.
 
 ## Why jdoctor
 
@@ -43,7 +57,8 @@ jdoctor turns that reflex into one command: findings backed by evidence, in Spri
 - **Rules detect, the LLM explains.** Every finding comes from a deterministic rule with its evidence.
   The LLM never detects anything, and jdoctor is fully useful without one (`--llm none`).
 - **Local first.** Nothing leaves your machine unless you ask for an explanation. Even then, the LLM
-  only receives the finding's summary, after redaction of emails, IPs, tokens and JDBC URLs.
+  only receives the finding's summary, after redaction of emails, IPs, tokens and JDBC URLs. Source
+  code is sent only with `--source`, and only the lines around the frames in the evidence.
 - **Bring your own key.** Explanations use your `ANTHROPIC_API_KEY`.
 
 ## Install and run
@@ -61,11 +76,15 @@ jdoctor collect pid:4242 -o incident/        # collect in production...
 jdoctor analyze incident/ --format md        # ...analyze later, anywhere
 jdoctor explain JD-MEM-001 incident/         # explain one finding (--llm none prints the runbook)
 jdoctor analyze recording.jfr                # analyze an existing JFR file
+jdoctor analyze app.log                      # startup failure or exceptions in a Spring Boot log
+jdoctor analyze pid:4242 --log app.log       # JVM and log together (collect --log copies it into the bundle)
+jdoctor analyze app.log --explain --source src/main/java   # the LLM sees the failing lines and proposes a fix
 ```
 
 Useful options: `--duration 30s`, `--thread-dumps 5`, `--no-histogram` (the histogram triggers a full GC),
 `--format text|md|json`, `--report file`, `--fail-on warning|critical` (exit code 2, for load tests in CI),
-`--model` or `JDOCTOR_MODEL` to choose the Claude model.
+`--model` or `JDOCTOR_MODEL` to choose the Claude model, `--source DIR` to give the LLM the code around
+each frame in the evidence (31 lines per frame, at most 3 frames, redacted like the rest).
 
 ## Rules
 
@@ -76,6 +95,17 @@ Useful options: `--duration 30s`, `--thread-dumps 5`, `--no-histogram` (the hist
 | [JD-THR-001](runbooks/JD-THR-001.md) | Deadlocked threads | Thread dumps |
 | [JD-SPR-001](runbooks/JD-SPR-001.md) | HikariCP pool saturated in several dumps, with the calling code | Thread dumps |
 | [JD-SIZE-001](runbooks/JD-SIZE-001.md) | Max heap above 80 % of the container memory limit | VM flags, VM.info cgroup section |
+| [JD-START-001](runbooks/JD-START-001.md) | Startup crash without Spring analysis, with the root cause and the application line | Application log |
+| [JD-START-002](runbooks/JD-START-002.md) | Two beans with the same name | Application log |
+| [JD-START-003](runbooks/JD-START-003.md) | Several beans for one injection point | Application log |
+| [JD-START-004](runbooks/JD-START-004.md) | Required bean not found | Application log |
+| [JD-START-005](runbooks/JD-START-005.md) | Circular dependency between beans | Application log |
+| [JD-START-006](runbooks/JD-START-006.md) | Port already in use | Application log |
+| [JD-EXC-001](runbooks/JD-EXC-001.md) | Recurring JDK or framework exceptions (NPE...), grouped by application line | Application log |
+| [JD-EXC-002](runbooks/JD-EXC-002.md) | Application-defined exceptions that escape unhandled (HTTP 500) | Application log |
+
+An exception counts as application-defined when its class is outside the JDK and the common
+frameworks (Spring, Jakarta, Hibernate, Jackson...).
 
 ## How it works
 
@@ -95,8 +125,8 @@ target JVM ──jcmd──▶ bundle (manifest.json, recording.jfr, thread dump
 | --- | --- |
 | `jdoctor-core` | Finding, Bundle, versioned Report, runbooks, extension SPIs |
 | `jdoctor-collectors` | Collection from a local JVM with `jcmd` |
-| `jdoctor-analyzers` | Parsers (JFR, thread dumps, flags, cgroup, histogram) and rules |
-| `jdoctor-llm` | Redaction, prompts, Claude explainer |
+| `jdoctor-analyzers` | Parsers (JFR, thread dumps, flags, cgroup, histogram, application logs) and rules |
+| `jdoctor-llm` | Redaction, prompts, source snippets, Claude explainer |
 | `jdoctor-cli` | picocli commands and renderers |
 
 ### Extending jdoctor

@@ -2,9 +2,11 @@ package dev.jdoctor.analyze;
 
 import dev.jdoctor.analyze.rules.ContainerSizingRule;
 import dev.jdoctor.analyze.rules.DeadlockRule;
+import dev.jdoctor.analyze.rules.ExceptionHotspotRule;
 import dev.jdoctor.analyze.rules.GcOverheadRule;
 import dev.jdoctor.analyze.rules.HeapGrowthRule;
 import dev.jdoctor.analyze.rules.HikariPoolExhaustionRule;
+import dev.jdoctor.analyze.rules.StartupFailureRule;
 import dev.jdoctor.core.Finding;
 import java.util.Comparator;
 import java.util.List;
@@ -24,7 +26,9 @@ public final class Analyzer {
                 new GcOverheadRule(),
                 new DeadlockRule(),
                 new HikariPoolExhaustionRule(),
-                new ContainerSizingRule()));
+                new ContainerSizingRule(),
+                new StartupFailureRule(),
+                new ExceptionHotspotRule()));
     }
 
     public List<Finding> analyze(Diagnosis diagnosis) {

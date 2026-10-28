@@ -8,11 +8,18 @@ import java.util.List;
  *
  * @param jvmSummary short facts about the JVM: version, GC, heap size
  * @param otherFindings ids and titles of the other findings, so the LLM can connect them
+ * @param sources the application code around the lines the evidence points at, when known
  */
-public record ExplainContext(List<String> jvmSummary, List<String> otherFindings) {
+public record ExplainContext(List<String> jvmSummary, List<String> otherFindings,
+        List<SourceSnippets.Snippet> sources) {
 
     public ExplainContext {
         jvmSummary = List.copyOf(jvmSummary);
         otherFindings = List.copyOf(otherFindings);
+        sources = List.copyOf(sources);
+    }
+
+    public ExplainContext(List<String> jvmSummary, List<String> otherFindings) {
+        this(jvmSummary, otherFindings, List.of());
     }
 }

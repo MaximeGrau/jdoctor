@@ -34,9 +34,10 @@ class EndToEndTest {
     void findsTheLeakAndTheDeadlockInALiveJvm(@TempDir Path dir) throws Exception {
         target = startTroubledApp();
         Path bundle = dir.resolve("bundle");
+        Path log = Files.writeString(dir.resolve("app.log"), NPE_LOG);
 
         Result analyze = run("analyze", "pid:" + target.pid(), "--duration", "24s", "--llm", "none",
-                "--format", "json", "--out", bundle.toString(), "--fail-on", "critical");
+                "--format", "json", "--out", bundle.toString(), "--log", log.toString(), "--fail-on", "critical");
 
         assertThat(analyze.exitCode()).as(analyze.err()).isEqualTo(JDoctor.EXIT_FINDINGS);
         JsonNode report = new ObjectMapper().readTree(analyze.out());
@@ -44,15 +45,40 @@ class EndToEndTest {
         assertThat(report.get("kind").asText()).isEqualTo("jvm-diagnosis");
         List<String> ids = new ArrayList<>();
         report.get("findings").forEach(f -> ids.add(f.get("id").asText()));
-        assertThat(ids).contains("JD-THR-001", "JD-MEM-001");
+        assertThat(ids).contains("JD-THR-001", "JD-MEM-001", "JD-EXC-001");
         assertThat(Files.list(bundle).map(p -> p.getFileName().toString()).toList())
                 .contains("manifest.json", "recording.jfr", "vm-flags.txt", "vm-info.txt",
-                        "thread-dump-1.txt", "thread-dump-3.txt", "heap-histogram.txt");
+                        "thread-dump-1.txt", "thread-dump-3.txt", "heap-histogram.txt", "app.log");
 
         Result explain = run("explain", "JD-THR-001", bundle.toString(), "--llm", "none");
 
         assertThat(explain.exitCode()).as(explain.err()).isZero();
         assertThat(explain.out()).startsWith("# JD-THR-001: deadlock");
+    }
+
+    @Test
+    void analyzesAStartupFailureFromALogAlone(@TempDir Path dir) throws Exception {
+        Path log = Files.writeString(dir.resolve("startup.log"), """
+                2026-10-28T17:58:20.100Z ERROR 1 --- [main] o.s.b.d.LoggingFailureAnalysisReporter :\s
+
+                ***************************
+                APPLICATION FAILED TO START
+                ***************************
+
+                Description:
+
+                Web server failed to start. Port 8080 was already in use.
+
+                Action:
+
+                Identify and stop the process that's listening on port 8080 or configure this application to listen on another port.
+
+                """);
+
+        Result analyze = run("analyze", log.toString(), "--llm", "none", "--fail-on", "critical");
+
+        assertThat(analyze.exitCode()).as(analyze.err()).isEqualTo(JDoctor.EXIT_FINDINGS);
+        assertThat(analyze.out()).contains("JD-START-006", "Port 8080 was already in use");
     }
 
     @Test
@@ -62,6 +88,13 @@ class EndToEndTest {
         assertThat(result.exitCode()).isEqualTo(1);
         assertThat(result.err()).contains("planned for v0.1");
     }
+
+    private static final String NPE_LOG = """
+            2026-10-28T17:58:30.295Z ERROR 1 --- [exec-2] o.a.c.c.C.[.[.[/].[dispatcherServlet] : Servlet.service() threw exception
+            java.lang.NullPointerException: Cannot read the array length because "order" is null
+            \tat com.example.orders.OrderController.size(OrderController.java:37) ~[!/:0.0.1]
+            \tat java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+            """;
 
     private record Result(int exitCode, String out, String err) {
     }

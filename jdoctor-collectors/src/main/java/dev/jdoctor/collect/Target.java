@@ -6,7 +6,8 @@ import java.nio.file.Path;
 /**
  * Where the data comes from: a live JVM, or files collected earlier.
  *
- * <p>Syntax: {@code pid:4242}, {@code 4242}, or a path to a bundle directory or a {@code .jfr} file.
+ * <p>Syntax: {@code pid:4242}, {@code 4242}, or a path to a bundle directory, a {@code .jfr} file,
+ * or an application log ({@code .log}, {@code .txt}, {@code .out}).
  * {@code docker:} and {@code k8s:} targets are planned for v0.1.
  */
 public sealed interface Target {
@@ -34,6 +35,13 @@ public sealed interface Target {
         }
     }
 
+    record LogFile(Path file) implements Target {
+        @Override
+        public String spec() {
+            return file.toString();
+        }
+    }
+
     static Target parse(String spec) {
         if (spec.startsWith("pid:")) {
             return new LocalPid(parsePid(spec.substring(4), spec));
@@ -53,8 +61,15 @@ public sealed interface Target {
         if (Files.isRegularFile(path) && spec.endsWith(".jfr")) {
             return new JfrFile(path);
         }
+        if (Files.isRegularFile(path) && isLog(spec)) {
+            return new LogFile(path);
+        }
         throw new IllegalArgumentException("Unknown target '" + spec
-                + "'. Use pid:<pid>, a bundle directory, or a .jfr file.");
+                + "'. Use pid:<pid>, a bundle directory, a .jfr file, or a .log file.");
+    }
+
+    static boolean isLog(String name) {
+        return name.endsWith(".log") || name.endsWith(".txt") || name.endsWith(".out");
     }
 
     private static long parsePid(String value, String spec) {

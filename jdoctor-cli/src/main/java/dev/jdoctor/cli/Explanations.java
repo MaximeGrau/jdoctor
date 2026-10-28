@@ -15,8 +15,8 @@ final class Explanations {
     private Explanations() {
     }
 
-    static Map<String, String> forFindings(Explainer explainer, List<Finding> findings, List<String> jvm,
-            PrintWriter progress) {
+    static Map<String, String> forFindings(Explainer explainer, LlmOptions llm, List<Finding> findings,
+            List<String> jvm, PrintWriter progress) {
         Map<String, String> result = new LinkedHashMap<>();
         for (Finding finding : findings) {
             if (!finding.severity().isAtLeast(Severity.WARNING)) {
@@ -29,7 +29,8 @@ final class Explanations {
                     .map(f -> f.id() + ": " + f.title())
                     .toList();
             try {
-                result.put(finding.id(), explainer.explain(finding, new ExplainContext(jvm, others)));
+                result.put(finding.id(),
+                        explainer.explain(finding, new ExplainContext(jvm, others, llm.snippets(finding))));
             } catch (RuntimeException e) {
                 progress.println("  warning: no explanation for " + finding.id() + ": " + e.getMessage());
             }

@@ -17,6 +17,10 @@ public class OrderCache {
         return id;
     }
 
+    public byte[] find(UUID id) {
+        return ORDERS.get(id);
+    }
+
     public int size() {
         return ORDERS.size();
     }
