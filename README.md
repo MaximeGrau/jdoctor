@@ -9,6 +9,8 @@ Tomcat threads, `@Transactional`, container sizing. It also reads application lo
 With `--source`, the explanation sees the code around the failing line and proposes the fix.
 
 > Status: early prototype (0.1.0-SNAPSHOT). Local JVMs only; Docker and Kubernetes targets come next.
+> Tested on Linux with JDK 21, for jdoctor and for the target JVM. The Claude explanations
+> (`--explain`) are tested against a mock of the API only, not yet against the real service.
 
 ```
 $ jdoctor analyze pid:4896 --duration 40s
@@ -63,7 +65,8 @@ jdoctor turns that reflex into one command: findings backed by evidence, in Spri
 
 ## Install and run
 
-Requires a JDK 21 to run jdoctor, and a JDK 17+ (with `jcmd`) on the machine of the target JVM.
+Requires a JDK 21 to run jdoctor, and `jcmd` on the machine of the target JVM. Target JVMs older than 21
+should work through `jcmd` but are not tested yet.
 
 ```bash
 ./gradlew :jdoctor-cli:installDist

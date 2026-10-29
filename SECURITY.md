@@ -11,6 +11,9 @@ rather than in a public issue.
 - Nothing is sent over the network unless you run with `--explain` or `jdoctor explain` with an LLM.
 - In that case only the finding (title, evidence, recommendation), short JVM facts and the runbook
   are sent, after redaction of emails, IP addresses, bearer tokens, JWTs, `password=`-style values
-  and JDBC URLs. Raw dumps and recordings are never sent.
-- Bundles can contain sensitive data (thread names, class names, system properties in VM.info).
-  Treat them like logs.
+  and JDBC URLs. Raw dumps, recordings and logs are never sent.
+- With `--source DIR`, the prompt also contains application source code: for each frame in the
+  evidence, the 31 lines around it (at most 3 snippets per finding), redacted the same way. Do not
+  use `--source` on code you are not allowed to send to your LLM provider.
+- Bundles can contain sensitive data (thread names, class names, system properties in VM.info,
+  and the application log when collected with `--log`). Treat them like logs.
